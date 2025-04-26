@@ -31,7 +31,13 @@ The [Internet Movie Database (IMDb)]() contains information on millions of movie
 ## Part II: EDA of individual tables
 * For each of the 4 tables, perform basic exploratory data analysis. Report the following information:
   * For each quantitative column, provide some summary statistics
+  
+In title_baiscs, there are four quantitative columns: isAdult, startYear, endYear, and runtimeMinutes. All of these included count, mean, std, min, 25%, 50%, 75%, max.
+In title_pinciple, ordering is referring to order of cast, title ratings includ averageRatin, which is IMDb user rating and numVotes, which is the number of votes. Names_basics include birthYear and deathYear, which are year of birth and year of death.
+
   * For any character columns, decided if they are actually representing factors/categorical data with a moderate number of columns. If so report the distributions for these variables.
+  
+
   * Provide a plot for each table. Across all of the plots, try to show off the most possible different ggplot features (`geoms_` functions, `stat_` functions, coordinate systems, facets, use of several variables, annotations)
 * For the `titles_basics` table
   * use two different variables to group and explore how `runtimeMinutes` varies for these different groups. Produce appropriate summaries.
