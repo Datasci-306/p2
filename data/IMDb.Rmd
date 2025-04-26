@@ -36,4 +36,11 @@ colnames(title_ratings)
 colnames(names_basics)
 ```
 
+#part 2-2
+```{r}
+table(title_principals$category)
+sort(table(names_basics$primaryProfession), decreasing = TRUE)[1:10]
+```
+
+
 
