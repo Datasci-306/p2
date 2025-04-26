@@ -5,10 +5,24 @@ library(tidyverse)
 ```
 
 ```{r}
-load_imdb_table <- function(file_name) {
-  file_path <- file.path("data", paste0(file_name, ".csv.gz"))
+preprocess <- function(file_name) {
+  file_path <- paste0(file_name, ".csv.gz")  # only the filename
   
   read_csv(file_path, na = "\\N", show_col_types = FALSE)
 }
+```
+
+```{r}
+name_basics <- preprocess("name_basics_sample")
+write_rds(name_basics, "name_basics.rda")
+
+title_basics <- preprocess("title_basics_sample")
+write_rds(title_basics, "title_basics.rda")
+
+title_principals <- preprocess("title_principals_sample")
+write_rds(title_principals, "title_principals.rda")
+
+title_ratings <- preprocess("title_ratings_sample")
+write_rds(title_ratings, "title_ratings.rda")
 ```
 
