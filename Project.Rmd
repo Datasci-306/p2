@@ -46,12 +46,12 @@ Other frequent professions include composer, cinematographer, and editor.
 The distribution shows that the entertainment industry is dominated by these key roles, with a long tail of less common professions.
 
 * Provide a plot for each table. Across all of the plots, try to show off the most possible different ggplot features (`geoms_` functions, `stat_` functions, coordinate systems, facets, use of several variables, annotations)
-
 * For the `titles_basics` table
-  * use two different variables to group and explore how `runtimeMinutes` varies for these different groups. Produce appropriate summaries.
+  * use two different variables to group and explore how `runtimeMinutes` varies for these different groups. Produce appropriate summaries. 
   * How many titles are known for name that is different than the original release name?
   * Graph the conditional distributions of release year based on the previous results. Comment on any trends you observe.
 * For the ratings, use the `cut` function to break the data into three groups based on the average ratings. Are higher rated titles rated more often or less often than lower rated titles? 
+
 * For the names table, 
   * Count the number of titles each person is known for and plot this distribution.
   * investigate the age of cast members
@@ -60,6 +60,7 @@ The distribution shows that the entertainment industry is dominated by these key
       * Do the same for living cast members.
 * Find all the actors with first names "Tom", "Thomas", "Thom" or "Tomas". How many are there?
 * How many titles use alliteration (i.e., all words in the title start with the same letter)?
+
 
 ## Part III: Pivoting
 

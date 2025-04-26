@@ -42,5 +42,130 @@ table(title_principals$category)
 sort(table(names_basics$primaryProfession), decreasing = TRUE)[1:10]
 ```
 
+#part 2-3
+Graph of title_basics
+```{r}
+# Clean and prep data
+title_basics_clean <- title_basics %>%
+  filter(!is.na(runtimeMinutes), runtimeMinutes < 300, !is.na(genres)) %>%
+  separate_rows(genres, sep = ",")
+
+# Plot with multiple geoms and facets
+ggplot(title_basics_clean, aes(x = as.numeric(runtimeMinutes))) +
+  geom_histogram(aes(y = after_stat(density)), bins = 30, fill = "skyblue", alpha = 0.7) +
+  geom_density(color = "red", linewidth = 1) +
+  facet_wrap(~ genres, ncol = 3) +
+  labs(title = "Runtime Distribution by Genre",
+       x = "Runtime (minutes)",
+       y = "Density") +
+  theme_minimal() +
+  theme(strip.text = element_text(face = "bold"))
+```
+
+Graph of title_principles
+```{r}
+# Prepare role percentages
+role_data <- title_principals %>%
+  count(category) %>%
+  mutate(percent = n/sum(n)*100)
+# Bar plot converted to polar
+ggplot(role_data, aes(x = "", y = percent, fill = category)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = paste0(round(percent), "%")), 
+            position = position_stack(vjust = 0.5)) +
+  scale_fill_viridis_d() +
+  labs(title = "Role Category Distribution") +
+  theme_void()
+```
+
+#part2-3
+#title_basic table group by is adult and titletype
+```{r}
+title_basics <- title_basics %>%
+  mutate(
+    runtimeMinutes = as.numeric(runtimeMinutes),  # Force numeric type
+    isAdult = as.logical(as.numeric(isAdult))     # Convert to logical (TRUE/FALSE)
+  ) %>%
+  filter(
+    !is.na(runtimeMinutes),  # Remove NA runtime
+    !is.na(isAdult)          # Remove NA isAdult
+  )
+
+runtime_by_adult <- title_basics %>%
+  group_by(isAdult) %>%
+  summarize(
+    count = n(),
+    mean = mean(runtimeMinutes, na.rm = TRUE),
+    sd = sd(runtimeMinutes, na.rm = TRUE),
+    min = min(runtimeMinutes, na.rm = TRUE),
+    q25 = quantile(runtimeMinutes, 0.25, na.rm = TRUE),
+    median = median(runtimeMinutes, na.rm = TRUE),
+    q75 = quantile(runtimeMinutes, 0.75, na.rm = TRUE),
+    max = max(runtimeMinutes, na.rm = TRUE)
+  )
+
+
+runtime_by_title_type <- title_basics %>%
+  group_by(titleType) %>%
+  summarize(
+    count = n(),
+    mean = mean(runtimeMinutes, na.rm = TRUE),
+    sd = sd(runtimeMinutes, na.rm = TRUE),
+    min = min(runtimeMinutes, na.rm = TRUE),
+    q25 = quantile(runtimeMinutes, 0.25, na.rm = TRUE),
+    median = median(runtimeMinutes, na.rm = TRUE),
+    q75 = quantile(runtimeMinutes, 0.75, na.rm = TRUE),
+    max = max(runtimeMinutes, na.rm = TRUE)
+  )
+
+diff_titles <- title_basics %>%
+  filter(primaryTitle != originalTitle) %>%
+  summarize(count = n())
+
+print(paste("Titles with different names:", diff_titles$count))
+```
+6,458 titles in your dataset have a primaryTitle that is not the same as the originalTitle.
+
+#part2-4
+```{r}
+title_basics <- title_basics %>%
+  mutate(
+    startYear = as.numeric(startYear),  # Convert to numeric
+    isAdult = as.factor(isAdult)        # Convert to factor for grouping
+  ) %>%
+  filter(
+    !is.na(startYear),                  # Remove missing years
+    !is.na(titleType),                  # Remove missing title types
+    !is.na(isAdult)                     # Remove missing adult flags
+  )
+
+ggplot(title_basics, aes(x = startYear, fill = titleType)) +
+  geom_density(alpha = 0.6, adjust = 1.5) +  # Density plot for smooth distribution
+  facet_wrap(~ titleType, ncol = 2) +        # Facet by titleType
+  labs(
+    title = "Release Year Distribution by Title Type",
+    x = "Release Year",
+    y = "Density"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")            # Remove redundant legend
+
+
+ggplot(title_basics, aes(x = startYear, fill = isAdult)) +
+  geom_histogram(binwidth = 5, position = "dodge", alpha = 0.8) +  # Dodged histogram
+  labs(
+    title = "Release Year Distribution by Adult Content Flag",
+    x = "Release Year",
+    y = "Count"
+  ) +
+  scale_fill_manual(
+    name = "Adult Content",
+    labels = c("Non-Adult", "Adult"),
+    values = c("#1f77b4", "#ff7f0e")          # Custom colors
+  ) +
+  theme_minimal()
+```
+
 
 
