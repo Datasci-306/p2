@@ -29,7 +29,6 @@ The [Internet Movie Database (IMDb)]() contains information on millions of movie
 * In your other files, you can load these using the `TABLE <- read_rds("data/FILENAME.rda")` function.
 
 ## Part II: EDA of individual tables
-
 * For each of the 4 tables, perform basic exploratory data analysis. Report the following information:
   * For each quantitative column, provide some summary statistics
   * For any character columns, decided if they are actually representing factors/categorical data with a moderate number of columns. If so report the distributions for these variables.
