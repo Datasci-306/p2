@@ -1,0 +1,14 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+```{r}
+load_imdb_table <- function(file_name) {
+  file_path <- file.path("data", paste0(file_name, ".csv.gz"))
+  
+  read_csv(file_path, na = "\\N", show_col_types = FALSE)
+}
+```
+
