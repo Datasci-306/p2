@@ -51,22 +51,21 @@ The distribution shows that the entertainment industry is dominated by these key
   * How many titles are known for name that is different than the original release name?
   * Graph the conditional distributions of release year based on the previous results. Comment on any trends you observe.
 * For the ratings, use the `cut` function to break the data into three groups based on the average ratings. Are higher rated titles rated more often or less often than lower rated titles? 
-
 * For the names table, 
   * Count the number of titles each person is known for and plot this distribution.
   * investigate the age of cast members
       * Group the data into living and deceased cast members. 
       * For deceased cast members, provide a graph that shows the distribution of ages.
-      * Do the same for living cast members.
+      * Do the same for living cast members. 
 * Find all the actors with first names "Tom", "Thomas", "Thom" or "Tomas". How many are there?
 * How many titles use alliteration (i.e., all words in the title start with the same letter)?
 
 
 ## Part III: Pivoting
-
 * Create a new version of the `titles_basics` table that has one row for each title-genre combination. See the `separate_rows` function for a useful too here.
 * Using that table, create a line plot of the count different genres over time (you may limit this to the most common genres if you wish).
 * Use the `model.matrix` function in the following way: `model.matrix(yourtalltable, ~ genre - 1)` to create a wide table with one column for each genre. Use this table to find the most common pair of genres (hint: use the `cor` function or produce facet plots)
+
 
 ## Part IV: Joining Tables
 

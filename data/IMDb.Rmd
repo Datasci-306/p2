@@ -168,4 +168,195 @@ ggplot(title_basics, aes(x = startYear, fill = isAdult)) +
 ```
 
 
+#part2-5
+```{r}
+title_ratings <- title_ratings %>%
+  mutate(
+    rating_group = cut(
+      averageRating,
+      breaks = c(0, 5, 7, 10),
+      labels = c("Low", "Medium", "High"),
+      include.lowest = TRUE
+    )
+  ) %>%
+  filter(!is.na(rating_group))  # Remove NA values
 
+rating_summary <- title_ratings %>%
+  group_by(rating_group) %>%
+  summarize(
+    mean_votes = mean(numVotes, na.rm = TRUE),
+    count = n()
+  )
+print(rating_summary)
+```
+Higher rated titles rated more often than lower rated titles
+
+#part 2-6
+```{r}
+# Count titles each person is known for
+names_basics <- names_basics %>%
+  mutate(
+    num_known_titles = sapply(strsplit(knownForTitles, ","), function(x) sum(x != ""))
+  )
+
+# Plot distribution
+ggplot(names_basics, aes(x = num_known_titles)) +
+  geom_bar(fill = "skyblue", color = "black") +
+  labs(title = "Number of Titles People Are Known For",
+       x = "Number of Known Titles",
+       y = "Count") +
+  theme_minimal() +
+  scale_x_continuous(breaks = 0:max(names_basics$num_known_titles))
+
+# Convert years to numeric and calculate age
+current_year <- 2025  # From problem context
+
+names_age <- names_basics %>%
+  mutate(
+    birthYear = as.numeric(birthYear),
+    deathYear = as.numeric(deathYear),
+    status = ifelse(is.na(deathYear), "Living", "Deceased"),
+    age = ifelse(status == "Deceased", 
+                deathYear - birthYear, 
+                current_year - birthYear)
+  ) %>%
+  filter(!is.na(birthYear))  # Remove missing birth years
+
+#Decrease cast members age distribution 
+ggplot(names_age %>% filter(status == "Deceased"), aes(x = age)) +
+  geom_histogram(bins = 20, fill = "salmon", color = "black") +
+  labs(title = "Age Distribution of Deceased Cast Members",
+       x = "Age at Death",
+       y = "Count") +
+  theme_minimal()
+
+#Living cast members
+ggplot(names_age %>% filter(status == "Living"), aes(x = age)) +
+  geom_histogram(bins = 20, fill = "lightgreen", color = "black") +
+  labs(title = "Age Distribution of Living Cast Members",
+       x = "Current Age",
+       y = "Count") +
+  theme_minimal()
+```
+
+#part 2-7
+
+Find names 
+```{r}
+# Ensure primaryProfession and primaryName are character
+names_basics <- names_basics %>%
+  mutate(
+    primaryProfession = as.character(primaryProfession),
+    primaryName = as.character(primaryName)
+  )
+
+# Extract first name
+names_basics <- names_basics %>%
+  mutate(first_name = word(primaryName, 1))
+
+# Filter for actors with matching first names
+actors_tom <- names_basics %>%
+  filter(
+    tolower(first_name) %in% c("tom", "thomas", "thom", "tomas"),
+    grepl("actor", primaryProfession, ignore.case = TRUE)
+  )
+
+# Count
+num_actors_tom <- nrow(actors_tom)
+print(paste("Number of actors named Tom/Thomas/Thom/Tomas:", num_actors_tom))
+```
+
+```{r}
+# Function to check alliteration
+is_alliteration <- function(title) {
+  words <- unlist(strsplit(title, "\\s+"))
+  words <- gsub("[^A-Za-z]", "", words) # Remove punctuation
+  words <- words[words != ""]           # Remove empty strings
+  if(length(words) < 2) return(FALSE)   # Need at least 2 words
+  first_letters <- toupper(substr(words, 1, 1))
+  length(unique(first_letters)) == 1
+}
+
+# Apply to all titles
+alliteration_mask <- sapply(title_basics$primaryTitle, is_alliteration)
+num_alliteration_titles <- sum(alliteration_mask, na.rm = TRUE)
+print(paste("Number of alliterative titles:", num_alliteration_titles))
+```
+
+# Part 3-1
+new version of title_basics
+```{r}
+library(tidyverse)
+
+# Split genres into separate rows
+title_genres <- title_basics %>%
+  separate_rows(genres, sep = ",", convert = TRUE) %>%
+  filter(!is.na(genres) & genres != "")  # Remove missing/empty genres
+
+# Verify the structure
+head(title_genres)
+```
+
+#part 3-2 line plot
+```{r}
+library(tidyverse)
+
+# Suppose your table is called title_genres
+# First, count the number of titles per year
+titles_per_year <- title_genres %>%
+  group_by(startYear) %>%
+  summarize(n_titles = n())
+
+# Basic line plot
+ggplot(titles_per_year, aes(x = startYear, y = n_titles)) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Number of Titles by Release Year",
+    x = "Release Year",
+    y = "Number of Titles"
+  ) +
+  theme_minimal()
+```
+
+#part 3-3 model.matrix function 
+```{r}
+library(tidyverse)
+
+# Split genres into rows (long format)
+title_genres_long <- title_basics %>%
+  separate_rows(genres, sep = ",") %>%
+  filter(genres != "" & !is.na(genres))  # Remove empty/missing genres
+
+# Create a wide binary matrix (one column per genre)
+genre_wide <- model.matrix(~ genres - 1, data = title_genres_long) %>%
+  as.data.frame() %>%
+  mutate(tconst = title_genres_long$tconst) %>%
+  distinct(tconst, .keep_all = TRUE)  # Ensure one row per title
+
+# Rename columns to remove "genres" prefix
+colnames(genre_wide) <- gsub("genres", "", colnames(genre_wide))
+
+
+# Calculate correlations between genre columns
+cor_matrix <- cor(genre_wide %>% select(-tconst))
+
+# Find the pair with the highest correlation (most co-occurrence)
+max_pair <- which(cor_matrix == max(cor_matrix[upper.tri(cor_matrix)]), arr.ind = TRUE)
+genre1 <- rownames(cor_matrix)[max_pair[1]]
+genre2 <- colnames(cor_matrix)[max_pair[2]]
+
+print(paste("Most common pair:", genre1, "&", genre2))
+
+# Compute co-occurrence counts
+co_occur <- crossprod(as.matrix(genre_wide %>% select(-tconst)))
+
+# Extract the most frequent pair (excluding diagonal)
+diag(co_occur) <- 0  # Ignore self-pairs
+max_pair <- which(co_occur == max(co_occur), arr.ind = TRUE)
+genre1 <- rownames(co_occur)[max_pair[1]]
+genre2 <- colnames(co_occur)[max_pair[2]]
+
+print(paste("Most common pair:", genre1, "&", genre2))
+
+```
