@@ -1,0 +1,93 @@
+## Part V: Profiling and Parallel Processing
+
+### Profiling the Genre-Proportions Pipeline
+
+```{r part5-profile, message=FALSE}
+library(dplyr)
+library(tidyr)
+library(forcats)
+library(data.table)
+library(tibble)
+
+genre_ratings <- 
+  title_genres %>% 
+  inner_join(title_ratings, by = "tconst")
+
+# 1) Tidyverse version
+orig_time <- system.time({
+  genre_prop_tidy <- genre_ratings %>%
+    mutate(genre_lump = fct_lump(genres, prop = 0.01, other_level = "Other")) %>%
+    count(startYear, genre_lump) %>%
+    group_by(startYear) %>%
+    summarise(prop = n / sum(n), .groups = "drop")
+})
+
+# 2) Data.table version
+dt <- as.data.table(genre_ratings)
+dt[, genre_lump := fct_lump(genres, prop = 0.01, other_level = "Other")]
+
+imp_time <- system.time({
+  genre_prop_dt <- dt[
+    , .(n = .N), by = .(startYear, genre_lump)
+  ][
+    , prop := n / sum(n), by = startYear
+  ]
+})
+
+# Compare timings
+tibble(
+  version = c("tidyverse", "data.table"),
+  elapsed = c(orig_time["elapsed"], imp_time["elapsed"])
+)
+```
+
+### 2. Parallelizing the “Known-For” Count
+```{r}
+library(parallel)
+seq_time <- system.time({
+  counts_seq <- sapply(
+    name_basics$knownForTitles,
+    function(x) length(strsplit(x, ",")[[1]])
+  )
+})
+
+cores <- detectCores() - 1
+par_time <- system.time({
+  counts_par <- mclapply(
+    name_basics$knownForTitles,
+    function(x) length(strsplit(x, ",")[[1]]),
+    mc.cores = cores
+  )
+})
+
+seq_time
+par_time
+```
+```{r}
+library(bench)
+library(stringr)
+
+# f1：strsplit + lengths()
+f1_count <- function(x) {
+  lengths(strsplit(x, ","))
+}
+
+# f2：str_count + 1
+f2_count <- function(x) {
+  str_count(x, ",") + 1
+}
+
+bm <- mark(
+  split_lengths = f1_count(name_basics$knownForTitles),
+  str_count     = f2_count(name_basics$knownForTitles),
+  iterations    = 20,
+  check         = FALSE
+)
+bm
+```
+Base on the compares, it shows that f2_count is faster and I recomand use that.
+
+
+
+
+
