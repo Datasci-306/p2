@@ -3,14 +3,20 @@
 ### Profiling the Genre-Proportions Pipeline
 
 ```{r part5-profile, message=FALSE}
+library(readr)
 library(dplyr)
 library(tidyr)
 library(forcats)
 library(data.table)
 library(tibble)
 
+name_basics      <- read_rds("data/name_basics.rda")
+title_basics     <- read_rds("data/title_basics.rda")
+title_principals <- read_rds("data/title_principals.rda")
+title_ratings    <- read_rds("data/title_ratings.rda")
+
 genre_ratings <- 
-  title_genres %>% 
+  title_basics %>% 
   inner_join(title_ratings, by = "tconst")
 
 # 1) Tidyverse version
