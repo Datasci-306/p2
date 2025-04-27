@@ -85,7 +85,7 @@ bm <- mark(
 )
 bm
 ```
-Base on the compares, it shows that f2_count is faster and I recomand use that.
+Base on the compares, it shows that f2_count is faster and I recommend use that.
 
 
 
