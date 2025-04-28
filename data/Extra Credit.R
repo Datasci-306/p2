@@ -1,141 +1,153 @@
 library(shiny)
 library(tidyverse)
 
-# Load your datasets
+# Load IMDb data
 title_basics <- read_rds("title_basics.rda")
 title_principals <- read_rds("title_principals.rda")
 name_basics <- read_rds("name_basics.rda")
 
-# Kevin Bacon's nconst
 kevin_bacon_nconst <- "nm0000102"
 
 ui <- fluidPage(
-  
   titlePanel("Six Degrees of Kevin Bacon"),
   
   sidebarLayout(
     sidebarPanel(
-      textInput("start_movie", "Enter Part of a Movie/TV Title:", value = ""),
+      textInput("movie_search", "Enter Part of a Movie Title:", value = ""),
       actionButton("start_game", "Start Game"),
       hr(),
-      uiOutput("next_selection"),
-      textOutput("game_status")
+      uiOutput("choice_ui"),
+      actionButton("make_move", "Confirm Move"),
+      hr(),
+      textOutput("status_message")
     ),
     
     mainPanel(
-      tableOutput("current_info")
+      tableOutput("history_table")
     )
   )
 )
 
 server <- function(input, output, session) {
   
-  # Initialize game variables
-  game_state <- reactiveValues(
-    current_tconst = NULL,
-    current_nconst = NULL,
+  # Setup game state
+  game <- reactiveValues(
     move_count = 0,
-    found_kevin = FALSE,
+    mode = "choose_person",  # or "choose_title"
     candidates = NULL,
-    message = ""
+    selected = NULL,
+    history = tibble(move = integer(), type = character(), name = character()),
+    found = FALSE
   )
   
   # Start the game
   observeEvent(input$start_game, {
-    req(input$start_movie)
+    req(input$movie_search)
     
-    matching_titles <- title_basics %>%
-      filter(str_detect(tolower(primaryTitle), tolower(input$start_movie)))
+    movie_found <- title_basics %>%
+      filter(str_detect(tolower(primaryTitle), tolower(input$movie_search)))
     
-    if (nrow(matching_titles) == 0) {
-      game_state$message <- "No matching titles found. Try again."
-      return(NULL)
+    if (nrow(movie_found) == 0) {
+      game$candidates <- NULL
+      game$history <- tibble()
+      game$move_count <- 0
+      game$found <- FALSE
+      return()
     }
     
-    selected_tconst <- matching_titles$tconst[1]
-    game_state$current_tconst <- selected_tconst
-    game_state$current_nconst <- NULL
-    game_state$move_count <- 0
-    game_state$found_kevin <- FALSE
-    game_state$message <- ""
+    selected_tconst <- movie_found$tconst[1]
     
-    # Load candidates: people in this title
-    game_state$candidates <- title_principals %>%
+    # Find people in that movie
+    people <- title_principals %>%
       filter(tconst == selected_tconst) %>%
       inner_join(name_basics, by = "nconst") %>%
-      distinct(primaryName, nconst)
+      select(primaryName, nconst) %>%
+      distinct()
+    
+    game$candidates <- people
+    game$mode <- "choose_person"
+    game$move_count <- 0
+    game$found <- FALSE
+    game$history <- tibble(move = 0, type = "Movie", name = movie_found$primaryTitle[1])
+    game$selected <- NULL
   })
   
-  # Let user pick a next step
-  output$next_selection <- renderUI({
-    req(game_state$candidates)
+  # UI for user choice
+  output$choice_ui <- renderUI({
+    req(game$candidates)
     
-    selectInput("next_choice", "Pick a Person:", choices = game_state$candidates$primaryName)
+    choices <- game$candidates$primaryName
+    selectInput("selected_choice", "Select:", choices = choices)
   })
   
-  # After picking a person
-  observeEvent(input$next_choice, {
-    req(input$next_choice)
+  # When user clicks "Confirm Move"
+  observeEvent(input$make_move, {
+    req(game$candidates)
+    req(input$selected_choice)
     
-    selected_nconst <- game_state$candidates %>%
-      filter(primaryName == input$next_choice) %>%
-      pull(nconst)
+    selected_row <- game$candidates %>%
+      filter(primaryName == input$selected_choice)
     
-    game_state$current_nconst <- selected_nconst
-    game_state$move_count <- game_state$move_count + 1
+    if (nrow(selected_row) == 0) return()
     
-    if (selected_nconst == kevin_bacon_nconst) {
-      game_state$found_kevin <- TRUE
-      game_state$message <- "🎉 You found Kevin Bacon! You win!"
-      return(NULL)
-    }
+    game$move_count <- game$move_count + 1
     
-    if (game_state$move_count >= 6) {
-      game_state$message <- "❌ You reached 6 moves without finding Kevin Bacon. You lose."
-      return(NULL)
-    }
-    
-    # Otherwise, load new titles this person is in
-    titles_for_person <- title_principals %>%
-      filter(nconst == selected_nconst) %>%
-      inner_join(title_basics, by = "tconst") %>%
-      distinct(primaryTitle, tconst)
-    
-    # Let user pick a title
-    updateSelectInput(session, "next_choice", label = "Pick a Title:", choices = titles_for_person$primaryTitle)
-    
-    # Now after choosing a title, load people again
-    observeEvent(input$next_choice, {
-      selected_tconst <- titles_for_person %>%
-        filter(primaryTitle == input$next_choice) %>%
-        pull(tconst)
+    if (game$mode == "choose_person") {
+      selected_nconst <- selected_row$nconst[1]
       
-      game_state$current_tconst <- selected_tconst
-      game_state$current_nconst <- NULL
+      # Check if it's Kevin Bacon
+      if (selected_nconst == kevin_bacon_nconst) {
+        game$found <- TRUE
+        game$history <- bind_rows(game$history, tibble(move = game$move_count, type = "Person", name = "Kevin Bacon"))
+        return()
+      }
       
-      # Load new candidates
-      game_state$candidates <- title_principals %>%
+      # Find titles for this person
+      titles <- title_principals %>%
+        filter(nconst == selected_nconst) %>%
+        inner_join(title_basics, by = "tconst") %>%
+        select(primaryTitle, tconst) %>%
+        distinct()
+      
+      game$candidates <- titles %>%
+        rename(primaryName = primaryTitle, nconst = tconst)
+      game$mode <- "choose_title"
+      game$history <- bind_rows(game$history, tibble(move = game$move_count, type = "Person", name = selected_row$primaryName[1]))
+      
+    } else if (game$mode == "choose_title") {
+      selected_tconst <- selected_row$nconst[1]
+      
+      # Find people in this title
+      people <- title_principals %>%
         filter(tconst == selected_tconst) %>%
         inner_join(name_basics, by = "nconst") %>%
-        distinct(primaryName, nconst)
+        select(primaryName, nconst) %>%
+        distinct()
       
-      updateSelectInput(session, "next_choice", label = "Pick a Person:", choices = game_state$candidates$primaryName)
-    }, ignoreInit = TRUE, once = TRUE)
-  })
-  
-  # Show status
-  output$game_status <- renderText({
-    if (game_state$message != "") {
-      game_state$message
-    } else {
-      paste("Move:", game_state$move_count)
+      game$candidates <- people
+      game$mode <- "choose_person"
+      game$history <- bind_rows(game$history, tibble(move = game$move_count, type = "Title", name = selected_row$primaryName[1]))
+    }
+    
+    if (game$move_count >= 6 && !game$found) {
+      game$mode <- "done"
     }
   })
   
-  # Show current list (for info)
-  output$current_info <- renderTable({
-    req(game_state$candidates)
-    head(game_state$candidates, 10)
+  # Status message
+  output$status_message <- renderText({
+    if (game$found) {
+      return("🎉 You found Kevin Bacon! You win!")
+    } else if (game$move_count >= 6) {
+      return("❌ You used 6 moves without finding Kevin Bacon. You lose.")
+    } else {
+      paste("Moves used:", game$move_count)
+    }
+  })
+  
+  # History table
+  output$history_table <- renderTable({
+    game$history
   })
 }
 
