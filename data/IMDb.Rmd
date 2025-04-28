@@ -224,7 +224,6 @@ title_genres <- title_basics %>%
 
 #part 3-2 line plot
 ```{r}
-library(tidyverse)
 top_genres <- title_genres %>%
   count(genres, sort = TRUE) %>%
   top_n(10, n) %>%
@@ -241,12 +240,25 @@ title_genres %>%
 
 #part 3-3 model.matrix function 
 ```{r}
-genre_matrix <- model.matrix(~ genres - 1, data = title_genres)
-correlations <- cor(genre_matrix)
+model.matrix(~ genres - 1, data = title_genres) -> genres_mat
+cor(genres_mat) -> cor_mat
 
-diag(correlations) <- 0
-most_common_pair <- which(correlations == max(correlations), arr.ind = TRUE)
+## exclude self-correlations
+diag(cor_mat) <- NA
 
-most_common_pair_genres <- colnames(correlations)[most_common_pair[1, ]]
+## find most common pair
+max_indices <- which(cor_mat == max(cor_mat, na.rm = TRUE), arr.ind = TRUE)
+
+## find most common pair excluding genre = NA
+max_indices_clean <- which(cor_mat[!(rownames(cor_mat) %in% c('genresNA')),
+        !(colnames(cor_mat) %in% c('genresNA'))] == 
+          max(cor_mat[!(rownames(cor_mat) %in% c('genresNA')),
+                      !(colnames(cor_mat) %in% c('genresNA'))], 
+              na.rm = TRUE),
+        arr.ind = TRUE)
+
+most_common_pair_genres <- colnames(cor_mat)[max_indices[1, ]]
 cat("Most common genre pair:", most_common_pair_genres[1], "and", most_common_pair_genres[2])
+
 ```
+
