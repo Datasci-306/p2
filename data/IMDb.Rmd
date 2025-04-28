@@ -35,6 +35,31 @@ colnames(title_ratings)
 colnames(names_basics)
 ```
 
+#part2-1
+* For each of the 4 tables, perform basic exploratory data analysis. Report the following information:
+  * For each quantitative column, provide some summary statistics
+  
+In title_baiscs, there are four quantitative columns: isAdult, startYear, endYear, and runtimeMinutes. All of these included count, mean, std, min, 25%, 50%, 75%, max.
+In title_pinciple, ordering is referring to order of cast, title ratings includ averageRatin, which is IMDb user rating and numVotes, which is the number of votes. Names_basics include birthYear and deathYear, which are year of birth and year of death.
+
+  * For any character columns, decided if they are actually representing factors/categorical data with a moderate number of columns. If so report the distributions for these variables.
+  
+title_principals and names_basics are categoircal data, but title_principals, names_basics, and All tables are not. 
+#distribution of title_principles: 
+Actor and Actress: These two categories are the most frequent, indicating that most principal cast members are performers. Director and Producer: These are also common, but less frequent than actors/actresses. Other categories such as writer, composer, and cinematographer are less frequent. 
+#distribution of names_basic: 
+Actor is the most common profession, followed by producer, director, and writer.
+Other frequent professions include composer, cinematographer, and editor.
+The distribution shows that the entertainment industry is dominated by these key roles, with a long tail of less common professions.
+
+
+
+
+
+
+
+
+
 #part 2-2
 ```{r}
 table(title_principals$category)
