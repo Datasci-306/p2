@@ -1,0 +1,194 @@
+
+## Part IV: Joining Tables
+
+```{r}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(forcats)
+library(parallel)
+library(bench)
+library(scales)
+
+name_basics      <- read_rds("data/name_basics.rda")
+title_basics     <- read_rds("data/title_basics.rda")
+title_principals <- read_rds("data/title_principals.rda")
+title_ratings    <- read_rds("data/title_ratings.rda")
+
+title_genres <- 
+  title_basics %>% 
+  select(tconst, startYear, genres) %>% 
+  separate_rows(genres, sep = ",")
+```
+
+```{r}
+#Highest & Lowest‐Rated Genre
+genre_ratings <- title_genres %>% inner_join(title_ratings, by="tconst")
+
+genre_summary <- genre_ratings %>%
+  group_by(genres) %>%
+  summarise(
+    avg_rating = mean(averageRating, na.rm=TRUE),
+    n_titles   = n(),
+    .groups    = "drop"
+  ) %>%
+  arrange(desc(avg_rating))
+
+genre_summary %>% slice(1)   # highest
+genre_summary %>% slice(n()) # lowest
+
+```
+
+```{r}
+#Genre Proportions Over Time
+library(scales)
+top5_genres <- genre_ratings %>% count(genres, sort=TRUE) %>% slice_head(n=5) %>% pull(genres)
+
+genre_prop_df <- genre_ratings %>%
+  mutate(
+    genre_lump = fct_lump(genres, prop=0.01, other_level="Other")
+  ) %>%
+  filter(genre_lump %in% c(top5_genres, "Other")) %>%
+  mutate(genre_lump = fct_relevel(genre_lump, top5_genres, "Other")) %>%
+  count(startYear, genre_lump) %>%
+  group_by(startYear) %>%
+  mutate(prop = n/sum(n), .groups="drop")
+
+ggplot(genre_prop_df, aes(x=startYear, y=prop, fill=genre_lump)) +
+  geom_col() +
+  scale_y_continuous(labels=percent_format()) +
+  labs(
+    title="Genre Share Over Time (Top 5 + Other)",
+    x="Release Year", y="Proportion of Titles", fill="Genre"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=45, hjust=1))
+
+```
+
+```{r}
+#Genre Proportions Over Time
+votes_by_year <- title_basics %>%
+  inner_join(title_ratings, by="tconst") %>%
+  filter(!is.na(startYear)) %>%
+  group_by(startYear) %>%
+  summarise(avg_votes=mean(numVotes,na.rm=TRUE), .groups="drop")
+
+ggplot(votes_by_year, aes(startYear, avg_votes)) +
+  geom_line() +
+  labs(
+    title="Avg IMDb Votes per Title by Year",
+    x="Release Year", y="Average # Votes"
+  ) +
+  theme_minimal()
+
+cor(votes_by_year$startYear, votes_by_year$avg_votes, use="complete.obs")
+```
+
+
+
+```{r}
+#Ratings per Title Over Time
+votes_by_year <- title_basics %>%
+  inner_join(title_ratings, by="tconst") %>%
+  filter(!is.na(startYear)) %>%
+  group_by(startYear) %>%
+  summarise(avg_votes=mean(numVotes,na.rm=TRUE), .groups="drop")
+
+ggplot(votes_by_year, aes(startYear, avg_votes)) +
+  geom_line() +
+  labs(
+    title="Avg IMDb Votes per Title by Year",
+    x="Release Year", y="Average # Votes"
+  ) +
+  theme_minimal()
+
+cor(votes_by_year$startYear, votes_by_year$avg_votes, use="complete.obs")
+```
+
+```{r}
+#Top 10 Principals by Median Rating
+person_ratings <- title_principals %>%
+  select(nconst, tconst) %>%
+  inner_join(title_ratings, by="tconst") %>%
+  inner_join(name_basics %>% select(nconst, primaryName), by="nconst") %>%
+  inner_join(title_basics %>% select(tconst, startYear), by="tconst")
+
+top10_principals <- person_ratings %>%
+  group_by(primaryName) %>%
+  summarise(
+    median_rating = median(averageRating, na.rm=TRUE),
+    n_titles      = n(),
+    .groups       = "drop"
+  ) %>%
+  arrange(desc(median_rating)) %>%
+  slice_head(n=10)
+
+top10_principals
+
+```
+
+
+```{r}
+#a) Genre Mix for Top 10
+person_ratings %>%
+  filter(primaryName %in% top10_principals$primaryName) %>%
+  inner_join(title_genres, by="tconst") %>%
+  count(primaryName, genres) %>%
+  group_by(primaryName) %>%
+  mutate(prop = n/sum(n), .groups="drop") %>%
+  ggplot(aes(genres, prop, fill=genres)) +
+    geom_col(show.legend=FALSE) +
+    facet_wrap(~primaryName, scales="free_x") +
+    labs(
+      title="Genre Mix for Top 10 Principals",
+      x="Genre", y="Proportion"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle=45, hjust=1))
+
+```
+
+```{r}
+#b) Rating Trend vs. Year
+person_ratings %>%
+  filter(primaryName %in% top10_principals$primaryName) %>%
+  ggplot(aes(startYear, averageRating, color=primaryName)) +
+    geom_point(alpha=0.6) +
+    geom_smooth(method="loess", se=FALSE) +
+    labs(
+      title="Rating vs. Year for Top 10 Principals",
+      x="Release Year", y="Rating"
+    ) +
+    theme_minimal()
+
+```
+
+
+```{r}
+# Highest Median “Known-For” Rating
+knownfor_ratings <- name_basics %>%
+  select(nconst, primaryName, knownForTitles) %>%
+  separate_rows(knownForTitles, sep=",") %>%
+  inner_join(title_ratings, by=c("knownForTitles"="tconst")) %>%
+  group_by(primaryName) %>%
+  summarise(
+    median_known_rating=median(averageRating,na.rm=TRUE),
+    n_known=n(),
+    .groups="drop"
+  ) %>%
+  arrange(desc(median_known_rating))
+
+knownfor_ratings %>% slice_max(median_known_rating)
+```
+
+
+
+
+
+
+
+
+
+
