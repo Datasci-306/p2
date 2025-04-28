@@ -42,6 +42,18 @@ sort(table(names_basics$primaryProfession), decreasing = TRUE)[1:10]
 ```
 
 #part 2-3
+
+Graph of Names_basics 
+```{r}
+summary(names_basics)
+# Distribution of number of known titles
+names_basics %>%
+  mutate(knownForCount = lengths(strsplit(knownForTitles, ","))) %>%
+  ggplot(aes(knownForCount)) +
+  geom_histogram(binwidth = 1, fill = "skyblue") +
+  labs(title = "Distribution of Known Titles per Person", x = "Number of Titles", y = "Count")
+```
+
 Graph of title_basics
 ```{r}
 summary(title_basics)
@@ -219,44 +231,19 @@ ggplot(names_age %>% filter(status == "Living"), aes(x = age)) +
 
 Find names 
 ```{r}
-# Ensure primaryProfession and primaryName are character
-names_basics <- names_basics %>%
-  mutate(
-    primaryProfession = as.character(primaryProfession),
-    primaryName = as.character(primaryName)
-  )
+# Part 2-7: Find actors with Tom variants (CORRECTED)
+toms <- names_basics %>%  # Changed from name_basics to names_basics
+  filter(grepl("^(Tom|Thomas|Thom|Tomas)\\b", primaryName, ignore.case = TRUE))
 
-# Extract first name
-names_basics <- names_basics %>%
-  mutate(first_name = word(primaryName, 1))
-
-# Filter for actors with matching first names
-actors_tom <- names_basics %>%
-  filter(
-    tolower(first_name) %in% c("tom", "thomas", "thom", "tomas"),
-    grepl("actor", primaryProfession, ignore.case = TRUE)
-  )
-
-# Count
-num_actors_tom <- nrow(actors_tom)
-print(paste("Number of actors named Tom/Thomas/Thom/Tomas:", num_actors_tom))
+cat("Number of actors named Tom, Thomas, Thom, or Tomas:", nrow(toms))
+names_basics <- read_csv('name_basics_sample.csv.gz')  # Plural "names_basics"
 ```
 
 ```{r}
 # Function to check alliteration
-is_alliteration <- function(title) {
-  words <- unlist(strsplit(title, "\\s+"))
-  words <- gsub("[^A-Za-z]", "", words) # Remove punctuation
-  words <- words[words != ""]           # Remove empty strings
-  if(length(words) < 2) return(FALSE)   # Need at least 2 words
-  first_letters <- toupper(substr(words, 1, 1))
-  length(unique(first_letters)) == 1
-}
-
-# Apply to all titles
-alliteration_mask <- sapply(title_basics$primaryTitle, is_alliteration)
-num_alliteration_titles <- sum(alliteration_mask, na.rm = TRUE)
-print(paste("Number of alliterative titles:", num_alliteration_titles))
+alliteration_titles <- title_basics %>%
+  filter(grepl("^(\\w)\\w*\\s(\\1\\w*\\s?)+$", primaryTitle, ignore.case = TRUE))
+cat("Number of titles using alliteration:", nrow(alliteration_titles))
 ```
 
 # Part 3-1
