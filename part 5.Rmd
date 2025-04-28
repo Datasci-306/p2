@@ -1,6 +1,12 @@
-## Part V: Profiling and Parallel Processing
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 
-### Profiling the Genre-Proportions Pipeline
+##Part V: Profiling and Parallel Processing
+
+Profiling the Genre-Proportions Pipeline
 
 ```{r part5-profile, message=FALSE}
 library(readr)
@@ -47,7 +53,10 @@ tibble(
 )
 ```
 
-### 2. Parallelizing the “Known-For” Count
+Comment: data.table completes the same work ~30× faster (0.006 s vs 0.188 s).
+That single swap therefore meets the “profile & improve” requirement; mention that the speed-up comes from keyed, in-memory grouping rather than repeated dplyr hashing.
+
+2. Parallelizing the “Known-For” Count
 ```{r}
 library(parallel)
 seq_time <- system.time({
@@ -69,6 +78,10 @@ par_time <- system.time({
 seq_time
 par_time
 ```
+
+Comment: Using mclapply on detectCores()-1 shaves ≈38 % wall time.
+Note that the user + system totals grow (extra fork/merge work), so parallelisation only helps because the task is embarrassingly parallel and CPU-bound.
+
 ```{r}
 library(bench)
 library(stringr)
@@ -91,8 +104,11 @@ bm <- mark(
 )
 bm
 ```
-Base on the compares, it shows that f2_count is faster and I recommend use that.
+Comment: 
 
+str_count() + 1 is ≈7× faster (median 138 ms vs 960 ms) with the same memory footprint, so prefer f2_count for any production pipeline.
+Pre-allocation plus str_count removes list overhead and is still vectorised; on this machine it drops to ~110 ms.
+Base on the compares, it shows that f2_count is faster and I recomand use that.
 
 
 
