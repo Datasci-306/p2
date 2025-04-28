@@ -1,92 +1,96 @@
 library(shiny)
 library(tidyverse)
 
-# Load data
+# --- Load Data ---
 title_principals <- read_rds("title_principals.rda")
 name_basics <- read_rds("name_basics.rda")
 title_basics <- read_rds("title_basics.rda")
 
-# Group the categories based on your real data
-job_groups <- list(
-  "Acting" = c("actor", "actress", "self", "archive_footage", "archive_sound"),
-  "Directing/Production" = c("director", "producer", "casting_director", "production_designer"),
-  "Writing" = c("writer"),
-  "Music" = c("composer"),
-  "Technical" = c("cinematographer", "editor")
-)
+# --- Preprocessing ---
+categories <- sort(unique(title_principals$category))
 
+# Pre-join for faster filtering
+title_principals_people <- title_principals %>%
+  inner_join(name_basics, by = "nconst")
+
+# --- UI ---
 ui <- fluidPage(
   
   titlePanel("IMDb Principals Explorer"),
   
   sidebarLayout(
     sidebarPanel(
+      # Step 1: Select Category
       selectInput(
-        "job_group", 
-        "Select Job Group:",
-        choices = names(job_groups)
+        "category",
+        "Select a Category:",
+        choices = categories
       ),
       
-      uiOutput("category_ui"),
-      uiOutput("person_ui")
+      # Step 2: Select Specific Job (dynamic)
+      uiOutput("job_ui")
     ),
     
     mainPanel(
-      h4("Titles for Selected Person"),
-      tableOutput("person_titles")
+      h4("People Info (Filtered)"),
+      dataTableOutput("filtered_results")
     )
   )
 )
 
+# --- Server ---
 server <- function(input, output, session) {
   
-  # 1. After selecting a job group, pick specific category
-  output$category_ui <- renderUI({
-    req(input$job_group)
-    selectInput(
-      "category", 
-      "Select Specific Job Category:",
-      choices = job_groups[[input$job_group]],
-      selected = NULL
-    )
-  })
-  
-  # 2. After selecting category, pick person
-  output$person_ui <- renderUI({
+  # Reactive: jobs available for selected category
+  available_jobs <- reactive({
     req(input$category)
-    people <- title_principals %>%
-      filter(category == input$category) %>%
-      distinct(nconst) %>%
-      inner_join(name_basics, by = "nconst") %>%
-      arrange(primaryName)
-    
-    selectizeInput(
-      "person",
-      "Select a Person:",
-      choices = people$primaryName,
-      options = list(maxOptions = 5000)
-    )
-  })
-  
-  # 3. After selecting a person, show titles
-  output$person_titles <- renderTable({
-    req(input$person)
-    
-    selected_nconst <- title_principals %>%
-      filter(category == input$category) %>%
-      distinct(nconst) %>%
-      inner_join(name_basics, by = "nconst") %>%
-      filter(primaryName == input$person) %>%
-      pull(nconst)
     
     title_principals %>%
-      filter(nconst == selected_nconst) %>%
-      inner_join(title_basics, by = "tconst") %>%
-      select(primaryTitle, startYear, titleType) %>%
-      arrange(desc(startYear)) %>%
-      head(10)
+      filter(category == input$category) %>%
+      pull(job) %>%
+      unique() %>%
+      na.omit() %>%
+      sort()
   })
   
+  # Step 2: Show job choices
+  output$job_ui <- renderUI({
+    req(input$category)
+    
+    if (length(available_jobs()) == 0) {
+      return(NULL)  # If no jobs, skip
+    } else {
+      selectInput(
+        "job",
+        "Select a Specific Job:",
+        choices = available_jobs()
+      )
+    }
+  })
+  
+  # Final filtered data
+  filtered_data <- reactive({
+    req(input$category)
+    
+    filtered_people <- title_principals_people %>%
+      filter(category == input$category)
+    
+    if (length(available_jobs()) > 0) {
+      req(input$job)
+      filtered_people <- filtered_people %>%
+        filter(job == input$job)
+    }
+    
+    filtered_people %>%
+      select(primaryName, birthYear, deathYear, primaryProfession, knownForTitles) %>%
+      distinct()
+  })
+  
+  # Render table
+  output$filtered_results <- renderDataTable({
+    filtered_data()
+  })
 }
 
-shinyApp(ui, server)
+# --- Run the App ---
+shinyApp(ui = ui, server = server)
