@@ -39,6 +39,8 @@ genre_summary %>% slice(1)   # highest
 genre_summary %>% slice(n()) # lowest
 
 ```
+The highest genre is history, lowest genre is horror.
+
 
 ```{r}
 #Genre Proportions Over Time
@@ -66,27 +68,6 @@ ggplot(genre_prop_df, aes(x=startYear, y=prop, fill=genre_lump)) +
   theme(axis.text.x = element_text(angle=45, hjust=1))
 
 ```
-
-```{r}
-#Genre Proportions Over Time
-votes_by_year <- title_basics %>%
-  inner_join(title_ratings, by="tconst") %>%
-  filter(!is.na(startYear)) %>%
-  group_by(startYear) %>%
-  summarise(avg_votes=mean(numVotes,na.rm=TRUE), .groups="drop")
-
-ggplot(votes_by_year, aes(startYear, avg_votes)) +
-  geom_line() +
-  labs(
-    title="Avg IMDb Votes per Title by Year",
-    x="Release Year", y="Average # Votes"
-  ) +
-  theme_minimal()
-
-cor(votes_by_year$startYear, votes_by_year$avg_votes, use="complete.obs")
-```
-
-
 
 ```{r}
 #Ratings per Title Over Time
