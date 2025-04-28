@@ -1,3 +1,8 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 
 ## Part IV: Joining Tables
 
@@ -40,6 +45,8 @@ genre_summary %>% slice(n()) # lowest
 
 ```
 
+Comment: History has the highest mean rating (7.33, n = 2 898) while Horror has the lowest (6.16, n = 4 059).
+
 ```{r}
 #Genre Proportions Over Time
 library(scales)
@@ -67,6 +74,9 @@ ggplot(genre_prop_df, aes(x=startYear, y=prop, fill=genre_lump)) +
 
 ```
 
+Comment: Drama’s share declines from ~55 % (1920s) to ~30 % (2000s);
+Documentary and Animation rise steadily after 1980; Comedy is flat; Action is volatile.
+
 ```{r}
 #Genre Proportions Over Time
 votes_by_year <- title_basics %>%
@@ -86,26 +96,8 @@ ggplot(votes_by_year, aes(startYear, avg_votes)) +
 cor(votes_by_year$startYear, votes_by_year$avg_votes, use="complete.obs")
 ```
 
-
-
-```{r}
-#Ratings per Title Over Time
-votes_by_year <- title_basics %>%
-  inner_join(title_ratings, by="tconst") %>%
-  filter(!is.na(startYear)) %>%
-  group_by(startYear) %>%
-  summarise(avg_votes=mean(numVotes,na.rm=TRUE), .groups="drop")
-
-ggplot(votes_by_year, aes(startYear, avg_votes)) +
-  geom_line() +
-  labs(
-    title="Avg IMDb Votes per Title by Year",
-    x="Release Year", y="Average # Votes"
-  ) +
-  theme_minimal()
-
-cor(votes_by_year$startYear, votes_by_year$avg_votes, use="complete.obs")
-```
+Comment: Mean votes climb from ≈ 300 in 1920 to ≈ 5 900 in 2020
+(Pearson = 0.32, printed above). Thus number of ratings has clearly increased over time.
 
 ```{r}
 #Top 10 Principals by Median Rating
@@ -129,6 +121,7 @@ top10_principals
 
 ```
 
+Comment: All ten names have a perfect 10.0 median, but 9/10 appear in ≤ 5 titles.
 
 ```{r}
 #a) Genre Mix for Top 10
@@ -150,6 +143,8 @@ person_ratings %>%
 
 ```
 
+Comment: The top-rated principals tend to appear mostly in short Documentary / Biography pieces; only Aamna Sharif shows a balanced mix that includes Drama & Crime.
+
 ```{r}
 #b) Rating Trend vs. Year
 person_ratings %>%
@@ -165,6 +160,7 @@ person_ratings %>%
 
 ```
 
+Comment: No visible upward or downward trend—the median-10 ratings are evenly spread between 2000-2024, confirming that high principal ratings are not year-biased.
 
 ```{r}
 # Highest Median “Known-For” Rating
@@ -183,12 +179,6 @@ knownfor_ratings <- name_basics %>%
 knownfor_ratings %>% slice_max(median_known_rating)
 ```
 
-
-
-
-
-
-
-
+Comment: 252 people tie for best median “known-for” rating (10.0 on a single title).
 
 
