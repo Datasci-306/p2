@@ -66,7 +66,6 @@ server <- function(input, output) {
           averageRating <= input$rating_slider[2]
         )
     }
-    
     data
   })
   
