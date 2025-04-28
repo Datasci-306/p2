@@ -197,7 +197,6 @@ ggplot(names_age %>% filter(status == "Living"), aes(x = age)) +
 ```
 
 #part 2-7
-
 Find names 
 ```{r}
 # Part 2-7: Find actors with Tom variants (CORRECTED)
@@ -219,76 +218,35 @@ cat("Number of titles using alliteration:", nrow(alliteration_titles))
 new version of title_basics
 ```{r}
 library(tidyverse)
-
-# Split genres into separate rows
 title_genres <- title_basics %>%
-  separate_rows(genres, sep = ",", convert = TRUE) %>%
-  filter(!is.na(genres) & genres != "")  # Remove missing/empty genres
-
-# Verify the structure
-head(title_genres)
+  separate_rows(genres, sep = ",")
 ```
 
 #part 3-2 line plot
 ```{r}
 library(tidyverse)
+top_genres <- title_genres %>%
+  count(genres, sort = TRUE) %>%
+  top_n(10, n) %>%
+  pull(genres)
 
-# Suppose your table is called title_genres
-# First, count the number of titles per year
-titles_per_year <- title_genres %>%
-  group_by(startYear) %>%
-  summarize(n_titles = n())
-
-# Basic line plot
-ggplot(titles_per_year, aes(x = startYear, y = n_titles)) +
+title_genres %>%
+  filter(genres %in% top_genres) %>%
+  group_by(startYear, genres) %>%
+  summarize(count = n()) %>%
+  ggplot(aes(x = as.numeric(startYear), y = count, color = genres)) +
   geom_line() +
-  geom_point() +
-  labs(
-    title = "Number of Titles by Release Year",
-    x = "Release Year",
-    y = "Number of Titles"
-  ) +
-  theme_minimal()
+  labs(title = "Count of Top Genres Over Time", x = "Year", y = "Count", color = "Genre")
 ```
 
 #part 3-3 model.matrix function 
 ```{r}
-library(tidyverse)
+genre_matrix <- model.matrix(~ genres - 1, data = title_genres)
+correlations <- cor(genre_matrix)
 
-# Split genres into rows (long format)
-title_genres_long <- title_basics %>%
-  separate_rows(genres, sep = ",") %>%
-  filter(genres != "" & !is.na(genres))  # Remove empty/missing genres
+diag(correlations) <- 0
+most_common_pair <- which(correlations == max(correlations), arr.ind = TRUE)
 
-# Create a wide binary matrix (one column per genre)
-genre_wide <- model.matrix(~ genres - 1, data = title_genres_long) %>%
-  as.data.frame() %>%
-  mutate(tconst = title_genres_long$tconst) %>%
-  distinct(tconst, .keep_all = TRUE)  # Ensure one row per title
-
-# Rename columns to remove "genres" prefix
-colnames(genre_wide) <- gsub("genres", "", colnames(genre_wide))
-
-
-# Calculate correlations between genre columns
-cor_matrix <- cor(genre_wide %>% select(-tconst))
-
-# Find the pair with the highest correlation (most co-occurrence)
-max_pair <- which(cor_matrix == max(cor_matrix[upper.tri(cor_matrix)]), arr.ind = TRUE)
-genre1 <- rownames(cor_matrix)[max_pair[1]]
-genre2 <- colnames(cor_matrix)[max_pair[2]]
-
-print(paste("Most common pair:", genre1, "&", genre2))
-
-# Compute co-occurrence counts
-co_occur <- crossprod(as.matrix(genre_wide %>% select(-tconst)))
-
-# Extract the most frequent pair (excluding diagonal)
-diag(co_occur) <- 0  # Ignore self-pairs
-max_pair <- which(co_occur == max(co_occur), arr.ind = TRUE)
-genre1 <- rownames(co_occur)[max_pair[1]]
-genre2 <- colnames(co_occur)[max_pair[2]]
-
-print(paste("Most common pair:", genre1, "&", genre2))
-
+most_common_pair_genres <- colnames(correlations)[most_common_pair[1, ]]
+cat("Most common genre pair:", most_common_pair_genres[1], "and", most_common_pair_genres[2])
 ```
