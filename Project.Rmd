@@ -52,7 +52,6 @@ The distribution shows that the entertainment industry is dominated by these key
   For most genres, the runtime drops as runtime increases. This pattern is consistent across all genres, including Action, Comedy, Drama, Documentary, Animation, and others.
 For animation and short, these genres show the highest density at the shortest runtimes, which aligns with expectations since animated and short films are typically brief.
   * How many titles are known for name that is different than the original release name?
-  There are 6458 titles with different names
   * Graph the conditional distributions of release year based on the previous results. Comment on any trends you observe.
   Comedy,drama, and action have consistenly remained among the top 3 most frequent genres across all decades. Newer genres like Animation have gained significant market share in recent years. 
 * For the ratings, use the `cut` function to break the data into three groups based on the average ratings. Are higher rated titles rated more often or less often than lower rated titles? 
@@ -64,9 +63,8 @@ Higher rated titles rated more often than lower rated titles.
       * For deceased cast members, provide a graph that shows the distribution of ages.
       * Do the same for living cast members. 
 * Find all the actors with first names "Tom", "Thomas", "Thom" or "Tomas". How many are there?
-For all actors' first names are "Tom", "Thomas", "Thom" or "Tomas", there are 1646 actors.
 * How many titles use alliteration (i.e., all words in the title start with the same letter)?
-Number of alliteration titles are: 2101.
+
 
 ## Part III: Pivoting
 * Create a new version of the `titles_basics` table that has one row for each title-genre combination. See the `separate_rows` function for a useful too here.
