@@ -91,7 +91,6 @@ Higher rated titles rated more often than lower rated titles.
 * Pick one or more of the previous problems and profile the performance of that piece. Write up your findings. If you see any opportunities to improve performance, feel fee to implement than and share the results.
 
 Profiling reveals that the separate_rows() function is a major bottleneck due to significant row expansion.
-The inner_join() with title_ratings adds further computational overhead.
 Possible improvements could include using data.table::tstrsplit() to avoid list expansion, or pre-filtering data.
 Overall, the current pipeline is acceptable for this dataset size but would need optimization for full IMDb data.
 
