@@ -207,6 +207,7 @@ cat("Number of actors named Tom, Thomas, Thom, or Tomas:", nrow(toms))
 names_basics <- read_csv('name_basics_sample.csv.gz')  # Plural "names_basics"
 ```
 
+Number of actors named Tom, THomas, Thom, or Tomas is 3301.
 ```{r}
 # Function to check alliteration
 alliteration_titles <- title_basics %>%
@@ -214,6 +215,7 @@ alliteration_titles <- title_basics %>%
 cat("Number of titles using alliteration:", nrow(alliteration_titles))
 ```
 
+Number of titles using alliteration is 2080
 # Part 3-1
 new version of title_basics
 ```{r}
@@ -259,6 +261,5 @@ max_indices_clean <- which(cor_mat[!(rownames(cor_mat) %in% c('genresNA')),
 
 most_common_pair_genres <- colnames(cor_mat)[max_indices[1, ]]
 cat("Most common genre pair:", most_common_pair_genres[1], "and", most_common_pair_genres[2])
-
 ```
-
+The most common genre pair is: muscial and filmnoir
