@@ -9,6 +9,7 @@ library(ggplot2)
 library(forcats)
 library(parallel)
 library(bench)
+library(scales)
 
 name_basics      <- read_rds("data/name_basics.rda")
 title_basics     <- read_rds("data/title_basics.rda")
@@ -41,6 +42,7 @@ genre_summary %>% slice(n()) # lowest
 
 ```{r}
 #Genre Proportions Over Time
+library(scales)
 top5_genres <- genre_ratings %>% count(genres, sort=TRUE) %>% slice_head(n=5) %>% pull(genres)
 
 genre_prop_df <- genre_ratings %>%
