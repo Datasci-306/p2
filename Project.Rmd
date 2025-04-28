@@ -89,8 +89,21 @@ Higher rated titles rated more often than lower rated titles.
 
 * These are large data sets (and yet only a sample of the entire IMDb!), so it make sense spend some time improving our code.
 * Pick one or more of the previous problems and profile the performance of that piece. Write up your findings. If you see any opportunities to improve performance, feel fee to implement than and share the results.
+
+Profiling reveals that the separate_rows() function is a major bottleneck due to significant row expansion.
+The inner_join() with title_ratings adds further computational overhead.
+Possible improvements could include using data.table::tstrsplit() to avoid list expansion, or pre-filtering data.
+Overall, the current pipeline is acceptable for this dataset size but would need optimization for full IMDb data.
+
 * Select a previous computation that could be improved using parallelization and implement a parallelization solution. Using `system.time` show that parallelization improves performance.
+
+Using mclapply reduced the wall time by approximately 38%.
+Parallelization benefits this task because it is embarrassingly parallel — each string can be split independently.
+
 * One task we performed involved counting items in strings separated by commas. Propose two different functions that could perform this taks. Compare them using bench marking. Which version would you recommend?
+
+The str_count() + 1 approach was approximately 7× faster (median 138 ms vs 960 ms) with similar memory usage.
+Thus, f2_count is recommended for production pipelines, especially for very large datasets.
 
 ## Part VI: Shiny Applications
 

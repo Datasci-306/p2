@@ -1,64 +1,55 @@
 ---
-output:
-  html_document: default
-  pdf_document: default
+title: "Part V: Profiling and Parallel Processing"
+output: 
+  pdf_document:
+    latex_engine: xelatex
 ---
-
-##Part V: Profiling and Parallel Processing
-
-Profiling the Genre-Proportions Pipeline
-
-```{r part5-profile, message=FALSE}
+```{r}
 library(readr)
 library(dplyr)
 library(tidyr)
 library(forcats)
 library(data.table)
 library(tibble)
+library(profvis)
+```
 
+```{r}
 name_basics      <- read_rds("data/name_basics.rda")
 title_basics     <- read_rds("data/title_basics.rda")
 title_principals <- read_rds("data/title_principals.rda")
 title_ratings    <- read_rds("data/title_ratings.rda")
-
-genre_ratings <- 
-  title_basics %>% 
-  inner_join(title_ratings, by = "tconst")
-
-# 1) Tidyverse version
-orig_time <- system.time({
-  genre_prop_tidy <- genre_ratings %>%
-    mutate(genre_lump = fct_lump(genres, prop = 0.01, other_level = "Other")) %>%
-    count(startYear, genre_lump) %>%
-    group_by(startYear) %>%
-    summarise(prop = n / sum(n), .groups = "drop")
-})
-
-# 2) Data.table version
-dt <- as.data.table(genre_ratings)
-dt[, genre_lump := fct_lump(genres, prop = 0.01, other_level = "Other")]
-
-imp_time <- system.time({
-  genre_prop_dt <- dt[
-    , .(n = .N), by = .(startYear, genre_lump)
-  ][
-    , prop := n / sum(n), by = startYear
-  ]
-})
-
-# Compare timings
-tibble(
-  version = c("tidyverse", "data.table"),
-  elapsed = c(orig_time["elapsed"], imp_time["elapsed"])
-)
 ```
 
-Comment: data.table completes the same work ~30× faster (0.006 s vs 0.188 s).
-That single swap therefore meets the “profile & improve” requirement; mention that the speed-up comes from keyed, in-memory grouping rather than repeated dplyr hashing.
+##Part V: Profiling and Parallel Processing
+
+Profiling the Genre-Proportions Pipeline
+
+```{r, eval=FALSE}
+
+# Profile known-for median rating pipeline
+profvis({
+  # Expand knownForTitles
+  known_for_expanded <- name_basics %>%
+    select(nconst, primaryName, knownForTitles) %>%
+    filter(!is.na(knownForTitles)) %>%
+    separate_rows(knownForTitles, sep = ",") %>%
+    rename(tconst = knownForTitles) %>%
+    inner_join(title_ratings, by = "tconst")
+
+  # Summarize median rating
+  known_for_median <- known_for_expanded %>%
+    group_by(nconst, primaryName) %>%
+    summarise(median_knownfor_rating = median(averageRating, na.rm = TRUE), .groups = "drop") %>%
+    arrange(desc(median_knownfor_rating))
+})
+```
 
 2. Parallelizing the “Known-For” Count
 ```{r}
 library(parallel)
+
+# Sequential version
 seq_time <- system.time({
   counts_seq <- sapply(
     name_basics$knownForTitles,
@@ -66,6 +57,7 @@ seq_time <- system.time({
   )
 })
 
+# Parallel version using mclapply
 cores <- detectCores() - 1
 par_time <- system.time({
   counts_par <- mclapply(
@@ -75,41 +67,34 @@ par_time <- system.time({
   )
 })
 
+# Timing results
 seq_time
 par_time
 ```
-
-Comment: Using mclapply on detectCores()-1 shaves ≈38 % wall time.
-Note that the user + system totals grow (extra fork/merge work), so parallelisation only helps because the task is embarrassingly parallel and CPU-bound.
-
+3. Benchmarking String-Counting Functions
 ```{r}
 library(bench)
 library(stringr)
 
-# f1：strsplit + lengths()
+# Approach 1: strsplit + lengths
 f1_count <- function(x) {
   lengths(strsplit(x, ","))
 }
 
-# f2：str_count + 1
+# Approach 2: str_count + 1
 f2_count <- function(x) {
   str_count(x, ",") + 1
 }
 
+# Benchmarking
 bm <- mark(
   split_lengths = f1_count(name_basics$knownForTitles),
   str_count     = f2_count(name_basics$knownForTitles),
   iterations    = 20,
-  check         = FALSE
+  check = FALSE
 )
+
 bm
 ```
-Comment: 
-
-str_count() + 1 is ≈7× faster (median 138 ms vs 960 ms) with the same memory footprint, so prefer f2_count for any production pipeline.
-Pre-allocation plus str_count removes list overhead and is still vectorised; on this machine it drops to ~110 ms.
-Base on the compares, it shows that f2_count is faster and I recomand use that.
-
-
 
 
