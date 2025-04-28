@@ -80,48 +80,26 @@ title_principals %>%
 #part2-3
 #title_basic table group by is adult and titletype
 ```{r}
-title_basics <- title_basics %>%
-  mutate(
-    runtimeMinutes = as.numeric(runtimeMinutes),  # Force numeric type
-    isAdult = as.logical(as.numeric(isAdult))     # Convert to logical (TRUE/FALSE)
-  ) %>%
-  filter(
-    !is.na(runtimeMinutes),  # Remove NA runtime
-    !is.na(isAdult)          # Remove NA isAdult
-  )
+summary(title_basics)
 
-runtime_by_adult <- title_basics %>%
-  group_by(isAdult) %>%
-  summarize(
-    count = n(),
-    mean = mean(runtimeMinutes, na.rm = TRUE),
-    sd = sd(runtimeMinutes, na.rm = TRUE),
-    min = min(runtimeMinutes, na.rm = TRUE),
-    q25 = quantile(runtimeMinutes, 0.25, na.rm = TRUE),
-    median = median(runtimeMinutes, na.rm = TRUE),
-    q75 = quantile(runtimeMinutes, 0.75, na.rm = TRUE),
-    max = max(runtimeMinutes, na.rm = TRUE)
-  )
+# runtimeMinutes by titleType and isAdult
+title_basics %>%
+  filter(!is.na(runtimeMinutes)) %>%
+  ggplot(aes(x = titleType, y = runtimeMinutes, fill = factor(isAdult))) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(title = "Runtime Distribution by Title Type and Adult Content", x = "Title Type", y = "Runtime (minutes)", fill = "Is Adult")
 
+# Count titles with original vs different release names
+alt_titles <- title_basics %>%
+  filter(originalTitle != primaryTitle)
+num_alt_titles <- nrow(alt_titles)
+cat("Number of titles known by a different name than original:", num_alt_titles)
 
-runtime_by_title_type <- title_basics %>%
-  group_by(titleType) %>%
-  summarize(
-    count = n(),
-    mean = mean(runtimeMinutes, na.rm = TRUE),
-    sd = sd(runtimeMinutes, na.rm = TRUE),
-    min = min(runtimeMinutes, na.rm = TRUE),
-    q25 = quantile(runtimeMinutes, 0.25, na.rm = TRUE),
-    median = median(runtimeMinutes, na.rm = TRUE),
-    q75 = quantile(runtimeMinutes, 0.75, na.rm = TRUE),
-    max = max(runtimeMinutes, na.rm = TRUE)
-  )
-
-diff_titles <- title_basics %>%
-  filter(primaryTitle != originalTitle) %>%
-  summarize(count = n())
-
-print(paste("Titles with different names:", diff_titles$count))
+# Conditional distributions of release year
+ggplot(alt_titles, aes(x = startYear, fill = titleType)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Release Year Distributions of Titles Known by Different Names", x = "Release Year", fill = "Title Type")
 ```
 6,458 titles in your dataset have a primaryTitle that is not the same as the originalTitle.
 
