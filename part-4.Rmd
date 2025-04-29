@@ -166,6 +166,7 @@ top10_principals <- person_ratings %>%
   slice_head(n=10)
 ```
 
+
 ```{r}
 # Find genre proportions for top 10 principals
 person_ratings %>%
@@ -185,6 +186,34 @@ person_ratings %>%
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
+```{r}
+# Summarize average rating by year (filter for valid years)
+ratings_by_year <- title_basics %>%
+  inner_join(title_ratings, by = "tconst") %>%
+  filter(!is.na(startYear)) %>%
+  mutate(startYear = as.numeric(startYear)) %>%
+  group_by(startYear) %>%
+  summarise(
+    avg_rating = mean(averageRating, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  ) %>%
+  filter(n >= 10)  # Optional: filter out years with very few titles for smoother trend
+
+# Plot: much faster!
+ggplot(ratings_by_year, aes(x = startYear, y = avg_rating)) +
+  geom_line(color = "blue", size = 1) +
+  geom_point(size = 1, color = "red") +
+  labs(
+    title = "Trend of Average IMDb Rating by Release Year",
+    x = "Release Year",
+    y = "Average IMDb Rating"
+  ) +
+  theme_minimal()
+```
+
+the average ratings increase throuby years from 1920 to 2000
 
 
 ```{r}
